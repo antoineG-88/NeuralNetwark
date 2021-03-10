@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using UnityEngine.UI;
 
 public class Manager : MonoBehaviour
 {
@@ -11,6 +12,7 @@ public class Manager : MonoBehaviour
     public float mutationRate = 5;
     [Range(0f, 0.99f)] public float mutationRatio;
     public int currentGeneration;
+    public Text generationtext;
 
     public Agent agentPrefab;
     public Transform agentGroup;
@@ -23,6 +25,11 @@ public class Manager : MonoBehaviour
     void Start()
     {
         StartCoroutine(InitCoroutine());
+    }
+
+    private void Update()
+    {
+        generationtext.text = currentGeneration.ToString();
     }
 
     IEnumerator InitCoroutine()
