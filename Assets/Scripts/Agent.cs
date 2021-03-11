@@ -8,6 +8,7 @@ public class Agent : MonoBehaviour, IComparable<Agent>
     public NeuralNetwork net;
     public CarController carController;
     public Transform nextCheckPoint;
+    public CheckPoint nextCheckPointScript;
 
     public float fitness;
     public float distanceTraveled;
@@ -17,8 +18,6 @@ public class Agent : MonoBehaviour, IComparable<Agent>
 
     public float nextCheckPointDist;
 
-    private Vector3 lastPos;
-
     public void ResetAgent()
     {
         fitness = 0;
@@ -27,11 +26,11 @@ public class Agent : MonoBehaviour, IComparable<Agent>
         transform.rotation = Quaternion.identity;
         rb.velocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
-
         inputs = new float[net.layers[0]];
         carController.Reset();
 
-        nextCheckPoint = CheckPointManager.instance.firstCheckPoint;
+        nextCheckPoint = CheckPointManager.instance.firstCheckPoint.transform;
+        nextCheckPointScript = CheckPointManager.instance.firstCheckPoint;
         nextCheckPointDist = Vector3.Distance(nextCheckPoint.position, transform.position);
     }
 
@@ -58,7 +57,6 @@ public class Agent : MonoBehaviour, IComparable<Agent>
         inputs[8] = RaySensor(transform.position + Vector3.up * 0.2f, transform.forward, 10f);
         inputs[9] = RaySensor(transform.position + Vector3.up * 0.2f, transform.forward + transform.right, 10f);
         inputs[10] = RaySensor(transform.position + Vector3.up * 0.2f, transform.forward - transform.right, 10f);
-        //inputs[11] = (float)Math.Tanh(Vector2.SignedAngle(nextCheckPoint.position - transform.position, transform.forward) * 0.05f);
 
         inputs[11] = 1f;
     }
@@ -102,17 +100,19 @@ public class Agent : MonoBehaviour, IComparable<Agent>
         }
     }
 
-    public void CheckPointReached(Transform checkPoint)
+    public void CheckPointReached(CheckPoint checkPoint)
     {
         distanceTraveled += nextCheckPointDist;
-        nextCheckPoint = checkPoint;
-        nextCheckPointDist = (transform.position - checkPoint.position).magnitude;
+        nextCheckPoint = checkPoint.transform;
+        nextCheckPointScript = checkPoint;
+        nextCheckPointDist = (transform.position - checkPoint.transform.position).magnitude;
     }
 
     public Renderer render;
     public Material firstMaterial;
     public Material mutantMaterial;
     public Material defaultMaterial;
+    public Material followerMaterial;
 
     public void SetFirstMaterial()
     {
@@ -122,9 +122,20 @@ public class Agent : MonoBehaviour, IComparable<Agent>
     {
         render.material = mutantMaterial;
     }
-    public void SetDefaultMaterial()
+    public void SetDefaultMaterial(Material mat)
     {
-        render.material = defaultMaterial;
+        if(mat != null)
+        {
+            render.material = mat;
+        }
+        else
+        {
+            render.material = defaultMaterial;
+        }
+    }
+    public void SetFollowerMaterial()
+    {
+        render.material = followerMaterial;
     }
 
     public int CompareTo(Agent other)
@@ -138,5 +149,31 @@ public class Agent : MonoBehaviour, IComparable<Agent>
             return -1;
         }
         return 0;
+    }
+
+    float diff = 0;
+    float axonDiff = 0;
+    int axonNb;
+
+    public float CompareBehavior(Agent ag, float negativeMultiplier, float[] axonLayerMultiplier, float axonDiffAmplifier)
+    {
+        diff = 0;
+        axonNb = 0;
+        for (int x = 0; x < net.axons.Length; x++)
+        {
+            for (int y = 0; y < net.axons[x].Length; y++)
+            {
+                for (int z = 0; z < net.axons[x][y].Length; z++)
+                {
+                    axonNb++;
+                    axonDiff = Mathf.Abs((float)Math.Tanh(net.axons[x][y][z]) - (float)Math.Tanh(ag.net.axons[x][y][z]));
+                    axonDiff = Mathf.Clamp(axonDiff, 0.0f, 1f);
+                    axonDiff = Mathf.Pow(axonDiff, axonDiffAmplifier);
+                    axonDiff *= Mathf.Sign(net.axons[x][y][z]) == Mathf.Sign(ag.net.axons[x][y][z]) ? 1 : negativeMultiplier;
+                    diff += axonDiff * axonLayerMultiplier[x];
+                }
+            }
+        }
+        return diff;
     }
 }
