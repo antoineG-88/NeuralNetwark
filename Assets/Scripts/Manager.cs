@@ -12,28 +12,30 @@ public class Manager : MonoBehaviour
     [Range(0f, 0.99f)] public float mutationRatio;
     public int currentGeneration;
     public Text generationtext;
+    public Text[] averageDiffText;
 
     [Header("Behavior Comparison")]
     public float negativeMultiplier;
     public float[] axonLayerMultiplier;
-    public float netDiffMultiplier;
     public float axonDiffAmplifier;
     [Space]
     [Range(0f, 1f)] public float leaderFitnessSelectRatio;
     public float leaderMinDiffSelect;
     public int colonySize;
     public int maxLeader;
-    public int duplicateNewLeaderNumber;
+    public Color[] colonyColors;
+    public Color mutantColor;
     public Material[] colonyMaterials;
+    public Material[] mutantMaterials;
 
     public Agent agentPrefab;
     public Transform agentGroup;
 
     Agent agent;
-    private Agent newleader;
     private List<AgentColony> agentColonies = new List<AgentColony>();
     private bool leaderCreatedThisGeneration;
     private List<Agent> agents = new List<Agent>();
+    private float averageDiff;
 
     public CameraController cameraController;
 
@@ -75,24 +77,43 @@ public class Manager : MonoBehaviour
     {
         currentGeneration++;
         SortColonies();
-        UpdateAgentNumber();
         if (!isFirst)
         {
-            if(agentColonies.Count < maxLeader)
-            {
-                DetectNewBehavior();
-            }
+            DetectNewBehavior();
         }
+        UpdateAgentNumber();
         Mutate();
         ResetAgents();
         SetMaterials();
     }
 
+    bool isBestWorst = false;
     void SortColonies()
     {
         for (int c = 0; c < agentColonies.Count; c++)
         {
             agentColonies[c].follower.Sort();
+        }
+        for (int c = 0; c < agentColonies.Count; c++)
+        {
+            if(agentColonies[c].initialised)
+            {
+                isBestWorst = false;
+                for (int cc = 0; cc < agentColonies.Count; cc++)
+                {
+                    if (cc != c)
+                    {
+                        if (agentColonies[c].follower[0].fitness < agentColonies[cc].follower[agentColonies[cc].follower.Count - 1].fitness)
+                        {
+                            isBestWorst = true;
+                        }
+                    }
+                }
+                if (isBestWorst)
+                {
+                    DestroyColony(c);
+                }
+            }
         }
     }
 
@@ -102,29 +123,39 @@ public class Manager : MonoBehaviour
         int previousColonyNumber = agentColonies.Count;
         for (int c = 0; c < previousColonyNumber; c++)
         {
-            int i = 0;
-            do
+            if (agentColonies.Count < maxLeader)
             {
-                float diff = agentColonies[c].follower[0].CompareBehavior(agentColonies[c].follower[i], negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier);
-                //diff *= netDiffMultiplier;
-                if (agentColonies[c].follower[i].fitness > agentColonies[c].follower[0].fitness * leaderFitnessSelectRatio && diff > leaderMinDiffSelect)
+                int i = 0;
+                do
                 {
-                    Debug.Log("The agent " + i + " has been chosen as a new leader with a difference of " + Mathf.RoundToInt(diff) + " and a fitness of " + agentColonies[c].follower[i].fitness);
-                    leaderCreatedThisGeneration = true;
-                    newleader = agentColonies[c].follower[i];
-                    AgentColony colony = new AgentColony
+                    float diff = agentColonies[c].follower[0].CompareBehavior(agentColonies[c].follower[i], negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier);
+                    if (agentColonies[c].follower[i].fitness > agentColonies[c].follower[0].fitness * leaderFitnessSelectRatio && diff > leaderMinDiffSelect)
                     {
-                        leader = agentColonies[c].follower[i],
-                        follower = new List<Agent>()
-                    };
-                    agentColonies.Add(colony);
-                }
-                i++;
-            } while (i < agentColonies[c].follower.Count && !leaderCreatedThisGeneration);
+                        Debug.Log("The agent " + i + " has been chosen as a new leader with a difference of " + Mathf.RoundToInt(diff) + " and a fitness of " + agentColonies[c].follower[i].fitness);
+                        leaderCreatedThisGeneration = true;
+                        AgentColony colony = new AgentColony
+                        {
+                            leader = agentColonies[c].follower[i],
+                            follower = new List<Agent>()
+                        };
+                        agentColonies.Add(colony);
+                    }
+                    i++;
+                } while (i < agentColonies[c].follower.Count && !leaderCreatedThisGeneration);
+            }
+            averageDiff = 0;
+            for (int y = 0; y < agentColonies[c].follower.Count; y++)
+            {
+                float diff = agentColonies[c].follower[0].CompareBehavior(agentColonies[c].follower[y], negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier);
+                averageDiff += diff;
+            }
+            averageDiff /= agents.Count;
+            averageDiffText[c].text = averageDiff.ToString();
         }
+
         /*for (int y = 0; y < agents.Count; y++)
         {
-            Debug.Log("Agent " + y + " : " + agents[0].CompareBehavior(agents[y], negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier));
+            Debug.Log("Agent " + y + " : " + diff);
         }*/
     }
 
@@ -169,6 +200,18 @@ public class Manager : MonoBehaviour
         agents.Add(agent);
     }
 
+    private void DestroyColony(int colonyIndex)
+    {
+        Debug.Log("Colony number : " + colonyIndex + " has been destroyed");
+        for (int i = 0; i < agentColonies[colonyIndex].follower.Count; i++)
+        {
+            agents.Remove(agentColonies[colonyIndex].follower[0]);
+            Destroy(agentColonies[colonyIndex].follower[0]);
+            agentColonies[colonyIndex].follower.RemoveAt(0);
+        }
+        agentColonies.RemoveAt(colonyIndex);
+    }
+
     void Mutate()
     {
         for (int c = 0; c < agentColonies.Count; c++)
@@ -178,15 +221,14 @@ public class Manager : MonoBehaviour
                 if(!agentColonies[c].initialised)
                 {
                     agentColonies[c].follower[i].net.CopyNet(agentColonies[c].follower[0].net);
-                    agentColonies[c].follower[i].net.Mutate(mutationRate);
-                    agentColonies[c].follower[i].SetMutatedMaterial();
+                    agentColonies[c].initialised = true;
                 }
                 else
                 {
                     agentColonies[c].follower[i].net.CopyNet(agentColonies[c].follower[i - (int)(agentColonies[c].follower.Count * mutationRatio)].net);
-                    agentColonies[c].follower[i].net.Mutate(mutationRate);
-                    agentColonies[c].follower[i].SetMutatedMaterial();
                 }
+                agentColonies[c].follower[i].net.Mutate(mutationRate);
+                agentColonies[c].follower[i].SetMutatedMaterial(mutantMaterials[c], colonyColors[c], mutantColor);
             }
         }
     }
@@ -206,7 +248,7 @@ public class Manager : MonoBehaviour
         {
             for (int i = 1; i < (int)(agentColonies[c].follower.Count * mutationRatio); i++)
             {
-                agentColonies[c].follower[i].SetDefaultMaterial(colonyMaterials[c]);
+                agentColonies[c].follower[i].SetDefaultMaterial(colonyMaterials[c], colonyColors[c]);
             }
         }
     }
