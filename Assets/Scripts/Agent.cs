@@ -116,35 +116,45 @@ public class Agent : MonoBehaviour, IComparable<Agent>
 
     public void SetFirstMaterial()
     {
-        render.material = firstMaterial;
+        if (render != null)
+            render.material = firstMaterial;
     }
     public void SetMutatedMaterial(Material mat, Color color, Color mutantColor)
     {
-        if (mat != null)
+        if(render != null)
         {
-            render.material = mat;
-            mat.color = Color.Lerp(color, mutantColor, 0.2f);
-        }
-        else
-        {
-            render.material = mutantMaterial;
+            if (mat != null)
+            {
+                render.material = mat;
+                mat.color = Color.Lerp(color, mutantColor, 0.2f);
+            }
+            else
+            {
+                render.material = mutantMaterial;
+            }
         }
     }
     public void SetDefaultMaterial(Material mat, Color color)
     {
-        if(mat != null)
+        if (render != null)
         {
-            render.material = mat;
-            mat.color = color;
-        }
-        else
-        {
-            render.material = defaultMaterial;
+            if (mat != null)
+            {
+                render.material = mat;
+                mat.color = color;
+            }
+            else
+            {
+                render.material = defaultMaterial;
+            }
         }
     }
     public void SetFollowerMaterial()
     {
-        render.material = followerMaterial;
+        if (render != null)
+        {
+            render.material = followerMaterial;
+        }
     }
 
     public int CompareTo(Agent other)
