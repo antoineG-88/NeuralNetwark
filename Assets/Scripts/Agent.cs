@@ -52,6 +52,8 @@ public class Agent : MonoBehaviour, IComparable<Agent>
 
         inputs[5] = (float)Math.Tanh(rb.velocity.magnitude * 0.05f);
         inputs[6] = (float)Math.Tanh(rb.angularVelocity.y * 0.1f);
+
+
         inputs[7] = rb.velocity.magnitude > 5 ? (float)Math.Tanh(Vector2.SignedAngle(rb.velocity, transform.forward) * 0.05f) : 0;
 
         inputs[8] = RaySensor(transform.position + Vector3.up * 0.2f, transform.forward, 10f);

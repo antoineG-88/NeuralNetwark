@@ -4283,7 +4283,7 @@ MonoBehaviour:
   - 1
   axonDiffAmplifier: 2
   leaderFitnessSelectRatio: 0.8
-  leaderMinDiffSelect: 6
+  leaderMinDiffSelect: 60
   colonySize: 50
   maxLeader: 3
   createLeaderInEachColony: 0
@@ -9692,7 +9692,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!20 &2099893756
 Camera:
   m_ObjectHideFlags: 0

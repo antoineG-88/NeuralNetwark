@@ -40,7 +40,6 @@ public class Manager : MonoBehaviour
 
     Agent agent;
     public List<AgentColony> agentColonies = new List<AgentColony>();
-    private bool leaderCreatedThisGeneration;
     private List<Agent> agents = new List<Agent>();
     private float averageDiff;
     private bool colonyWasDestroyed;
@@ -94,11 +93,6 @@ public class Manager : MonoBehaviour
         UpdateColonyInfo();
         ResetAgents();
         SetMaterials();
-        /*Debug.Log("Colony 1 count : " + agentColonies[0].follower.Count);
-        if(agentColonies.Count > 1)
-            Debug.Log("Colony 2 count : " + agentColonies[1].follower.Count);
-        if (agentColonies.Count > 2)
-            Debug.Log("Colony 3 count : " + agentColonies[2].follower.Count);*/
     }
 
     bool shouldBeDestroyed = false;
@@ -116,7 +110,7 @@ public class Manager : MonoBehaviour
 
         for (int c = 0; c < agentColonies.Count; c++)
         {
-            if(agentColonies[c].initialised)
+            if (agentColonies[c].initialised)
             {
                 shouldBeDestroyed = false;
                 for (int cc = 0; cc < agentColonies.Count; cc++)
@@ -131,13 +125,16 @@ public class Manager : MonoBehaviour
 
                         if (agentColonies[c].follower[0].CompareBehavior(agentColonies[cc].follower[0], negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier) < leaderMinDiffSelect)
                         {
-                            Debug.Log("Colony " + c + " is really close to other colonies, it must be destroyed");
-                            shouldBeDestroyed = true;
+                            if (c != 0)
+                            {
+                                Debug.Log("Colony " + c + " is really close to other colonies, it must be destroyed");
+                                shouldBeDestroyed = true;
+                            }
                         }
                     }
 
                 }
-                if (shouldBeDestroyed && c != 0)
+                if (shouldBeDestroyed)
                 {
                     DestroyColony(c);
                 }
@@ -145,58 +142,88 @@ public class Manager : MonoBehaviour
         }
     }
 
+    float diff = 0;
+    float bestDiff = 0;
     void DetectNewBehavior()
     {
-        leaderCreatedThisGeneration = false;
         int previousColonyNumber = agentColonies.Count;
-        for (int c = 0; c < previousColonyNumber; c++)
+        if (createLeaderInEachColony)
+        {
+            Debug.LogWarning("Ne pas utiliser ca x)");
+            /*for (int c = 0; c < previousColonyNumber; c++)
+            {
+                if (agentColonies.Count < maxLeader)
+                {
+                    ag = 0;
+                    do
+                    {
+                        diff = agentColonies[c].follower[0].CompareBehavior(agentColonies[c].follower[ag], negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier);
+                        if (agentColonies[c].follower[ag].fitness > agentColonies[c].follower[0].fitness * leaderFitnessSelectRatio && diff > leaderMinDiffSelect)
+                        {
+                            Debug.Log("The agent " + ag + "in colony " + c + " has been chosen as a new leader with a difference of " + Mathf.RoundToInt(diff) + " and a fitness of " + agents[ag].fitness + " / " + agents[0].fitness + " (" + agents[ag].fitness / agents[0].fitness + ")");
+                            AgentColony colony = new AgentColony
+                            {
+                                leader = agentColonies[c].follower[ag],
+                                follower = new List<Agent>()
+                            };
+                            agentColonies.Add(colony);
+                        }
+                        ag++;
+                    } while (ag < agents.Count);
+                }
+            }*/
+        }
+        else
         {
             if (agentColonies.Count < maxLeader)
             {
-                int i = 0;
-                do
+                bestDiff = 0;
+                agent = null;
+                bool newLeaderFound = false;
+                for (int i = 0; i < agents.Count; i++)
                 {
-                    if(createLeaderInEachColony)
-                    {
-                        float diff = agentColonies[c].follower[0].CompareBehavior(agentColonies[c].follower[i], negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier);
-                        if (agentColonies[c].follower[i].fitness > agentColonies[c].follower[0].fitness * leaderFitnessSelectRatio && diff > leaderMinDiffSelect)
-                        {
-                            Debug.Log("The agent " + i + "in colony " + c + " has been chosen as a new leader with a difference of " + Mathf.RoundToInt(diff) + " and a fitness of " + agents[i].fitness + " / " + agents[0].fitness + " (" + agents[i].fitness / agents[0].fitness + ")");
-                            leaderCreatedThisGeneration = true;
-                            AgentColony colony = new AgentColony
-                            {
-                                leader = agentColonies[c].follower[i],
-                                follower = new List<Agent>()
-                            };
-                            agentColonies.Add(colony);
-                        }
-                    }
-                    else
-                    {
+                    diff = agents[0].CompareBehavior(agents[i], negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier);
 
-                        float diff = agents[0].CompareBehavior(agents[i], negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier);
-                        if (agents[i].fitness > agents[0].fitness * leaderFitnessSelectRatio && diff > leaderMinDiffSelect)
+                    if (agents[i].fitness > agents[0].fitness * leaderFitnessSelectRatio && diff > leaderMinDiffSelect && diff > bestDiff)
+                    {
+                        bool leaderAlreaydExists = false;
+                        //bool isSameAsPreviousNewLeader = false;
+                        for (int c = 0; c < agentColonies.Count; c++)
                         {
-                            Debug.Log("The agent " + i + " has been chosen as a new leader with a difference of " + Mathf.RoundToInt(diff) + " and a fitness of " + agents[i].fitness + " / " + agents[0].fitness + " (" + agents[i].fitness/ agents[0].fitness + ")");
-                            leaderCreatedThisGeneration = true;
-                            AgentColony colony = new AgentColony
+                            //Debug.Log("Leader diif with colony : " + c + " : " + agents[i].CompareBehavior(agentColonies[c].leader, negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier));
+                            if (agents[i].CompareBehavior(agentColonies[c].leader, negativeMultiplier, axonLayerMultiplier, axonDiffAmplifier) < leaderMinDiffSelect)
                             {
-                                leader = agents[i],
-                                follower = new List<Agent>()
-                            };
-                            agentColonies.Add(colony);
+                                leaderAlreaydExists = true;
+                            }
+                        }
+
+                        if (!leaderAlreaydExists)
+                        {
+                            bestDiff = diff;
+                            agent = agents[i];
+                            newLeaderFound = true;
+                            Debug.Log("The agent " + i + " has been found as a new leader with a difference of " + Mathf.RoundToInt(diff) + " and a fitness of " + agents[i].fitness + " / " + agents[0].fitness + " (" + agents[i].fitness / agents[0].fitness + ")");
                         }
                     }
-                    i++;
-                } while (i < agents.Count && !leaderCreatedThisGeneration);
+                }
+
+                if(newLeaderFound)
+                {
+                    CreateNewColony(agent);
+                }
             }
         }
+    }
 
-
-        /*for (int y = 0; y < agents.Count; y++)
+    void CreateNewColony(Agent leaderReference)
+    {
+        Debug.Log("New colony ! with this leader ^ ");
+        AgentColony colony = new AgentColony
         {
-            Debug.Log("Agent " + y + " : " + diff);
-        }*/
+            leader = leaderReference,
+            follower = new List<Agent>()
+        };
+        agentColonies.Add(colony);
     }
 
     void UpdateAgentNumber()
@@ -248,7 +275,8 @@ public class Manager : MonoBehaviour
         for (int i = 0; i < baseCount; i++)
         {
             index = agents.IndexOf(agentColonies[colonyIndex].follower[agentColonies[colonyIndex].follower.Count - 1]);
-            agents.RemoveAt(index);
+            if(index != -1)
+                agents.RemoveAt(index);
             Destroy(agentColonies[colonyIndex].follower[agentColonies[colonyIndex].follower.Count - 1].gameObject);
             agentColonies[colonyIndex].follower.RemoveAt(agentColonies[colonyIndex].follower.Count - 1);
         }
@@ -263,7 +291,7 @@ public class Manager : MonoBehaviour
         {
             if (!agentColonies[c].initialised)
             {
-                agentColonies[c].follower[0] = agentColonies[c].leader;
+                agentColonies[c].follower[0].net.CopyNet(agentColonies[c].leader.net);
                 for (int i = 1; i < agentColonies[c].follower.Count; i++)
                 {
                     agentColonies[c].follower[i].net.CopyNet(agentColonies[c].leader.net);
