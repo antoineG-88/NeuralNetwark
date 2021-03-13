@@ -123,7 +123,8 @@ public class Agent : MonoBehaviour, IComparable<Agent>
     }
     public void SetMutatedMaterial(Material mat, Color color, Color mutantColor)
     {
-        if(render != null)
+        transform.GetChild(0).gameObject.SetActive(false);
+        if (render != null)
         {
             if (mat != null)
             {
@@ -138,6 +139,7 @@ public class Agent : MonoBehaviour, IComparable<Agent>
     }
     public void SetDefaultMaterial(Material mat, Color color)
     {
+        transform.GetChild(0).gameObject.SetActive(false);
         if (render != null)
         {
             if (mat != null)
@@ -153,6 +155,7 @@ public class Agent : MonoBehaviour, IComparable<Agent>
     }
     public void SetFollowerMaterial()
     {
+        transform.GetChild(0).gameObject.SetActive(false);
         if (render != null)
         {
             render.material = followerMaterial;
